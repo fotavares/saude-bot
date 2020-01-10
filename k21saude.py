@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 import requests
 import json
-import telepot
-from telepot.loop import MessageLoop
+import amanobot
+from amanobot.loop import MessageLoop
 import constants
 import time
 import sqlite3
@@ -10,6 +10,7 @@ from datetime import datetime
 from pytz import timezone
 import sys
 
+TOKEN = ''
 
 BASE_NAME = 'banco.saude.db'
 def insertResposta(user_id, chat_id,message_id,timestamp,response):
@@ -65,36 +66,37 @@ def getResult(timestamp, chat_id):
 		return data
 		
 def handle(msg):
-	content_type, chat_type, chat_id = telepot.glance(msg)
+	content_type, chat_type, chat_id = amanobot.glance(msg)
 	#print(msg)
 
 	data = datetime.now(timezone('Brazil/East')).strftime('%Y%m%d')
 
-	if '/saude' in msg['text']:
-		EnviaPergunta(chat_id, data)
+	if content_type == 'text':
+		if '/saude' in msg['text']:
+			EnviaPergunta(chat_id, data)
 
-	if '/resultado' in msg['text'] :
-		CarregaResultado(chat_id)
-		#	bot.sendMessage(chat_id, "Escolha a data para o resultado:",reply_markup=keybResult)
+		if '/resultado' in msg['text'] :
+			CarregaResultado(chat_id)
+			#	bot.sendMessage(chat_id, "Escolha a data para o resultado:",reply_markup=keybResult)
 
-	if 'reply_to_message' in msg:
-		id_pergunta = msg['reply_to_message']['message_id']
-		from_pergunta = msg['reply_to_message']['from']['username']
-		user_id = msg['from']['id']
-		resposta = msg['text']
+		if 'reply_to_message' in msg:
+			id_pergunta = msg['reply_to_message']['message_id']
+			from_pergunta = msg['reply_to_message']['from']['username']
+			user_id = msg['from']['id']
+			resposta = msg['text']
 
-		me = bot.getMe()
-		if from_pergunta == me['username']:
-			#é uma pergunta feita pelo bot?
-			if isPerguntaValida(chat_id,id_pergunta):
-				#grava a resposta
-				insertResposta(user_id, chat_id,id_pergunta,data,resposta)
+			me = bot.getMe()
+			if from_pergunta == me['username']:
+				#é uma pergunta feita pelo bot?
+				if isPerguntaValida(chat_id,id_pergunta):
+					#grava a resposta
+					insertResposta(user_id, chat_id,id_pergunta,data,resposta)
 
 def EnviaPergunta(chat_id, data):
     stamps = getTimes(chat_id)
     send_question = True if (len(stamps) == 0) else True if (str(data) not in stamps[0]) else False
     if (send_question):
-        enviada = bot.sendMessage(chat_id,"Quantos dias você trabalhou fora do horário de trabalho essa semana?")
+        enviada = bot.sendMessage(chat_id,"Quantos dias você trabalhou após as 21h essa semana?")
         insertQuestion(enviada['message_id'],enviada['text'],data,chat_id)
     else:
         bot.sendMessage(chat_id,"Já foi enviada uma enquete hoje")
@@ -133,7 +135,7 @@ def CarregaResultado(chat_id):
 	
 
 
-bot = telepot.Bot('')
+bot = amanobot.Bot(TOKEN)
 if len(sys.argv) > 1:
 	data = datetime.now(timezone('Brazil/East')).strftime('%Y%m%d')
 	if(sys.argv[1]) == 'Pergunta':
